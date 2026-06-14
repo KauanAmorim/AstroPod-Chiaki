@@ -1,85 +1,95 @@
-# Especificação de Fluxo de Trabalho de IA Colaborativa: "Abraçar e Verificar" (Embrace & Verify)
+# 🧠 Especificação de Fluxo de Trabalho de IA Colaborativa (v2.0)
+> **Padrão de Projeto "Abraçar e Verificar" (Embrace & Verify)** — Guia de Integração Homem-Máquina para Desenvolvimento de Infraestrutura e Sistemas Conteinerizados.
 
-Este documento especifica o padrão de projeto de interação entre um Agente de IA de Codificação e um Desenvolvedor/Usuário. O objetivo é demonstrar como estruturar a cooperação para que a IA assuma a carga cognitiva técnica (pesquisa, infraestrutura, automação de scripts) e guie o usuário de forma proativa, enquanto o usuário atua como o validador final de cada etapa ("Human-in-the-Loop").
+Este documento formaliza as melhores práticas de cooperação entre um Desenvolvedor (Human-in-the-Loop) e um Agente de IA de Codificação. O objetivo é reduzir a carga cognitiva do desenvolvedor através de proatividade técnica e verificação de segurança, mantendo o humano no controle das validações cruciais.
 
 ---
 
-## 1. Princípios Fundamentais
+## 🗺️ Fluxo de Cooperação "Abraçar e Verificar"
+
+O diagrama abaixo ilustra o loop de feedback contínuo estabelecido durante a criação e manutenção do projeto:
 
 ```mermaid
 graph TD
-    A[Acolhimento & Alinhamento] --> B[Investigação Proativa do Ambiente]
-    B --> C[Planejamento & Aprovação de Escopo]
-    C --> D[Execução Incremental com Feedback]
-    D --> E[Integração e Hand-off de Documentação]
+    subgraph IA [Agente de IA]
+        A["Diagnóstico Proativo (SO, Portas, Barramentos)"] --> B["Criação do Plano Técnico (Temp. Spec)"]
+        B --> C["Geração de Código & Scripts (Dockerfile, Compose)"]
+        C --> D["Documentação Amigável (README, Troubleshooting)"]
+    end
+
+    subgraph Humano [Desenvolvedor - Host]
+        H1["Validação de Segurança (Revisão de Vazamentos)"] --> H2["Execução Local & Teste Físico (Periféricos, Streaming)"]
+        H2 --> H3["Feedback & Identificação de Bugs (Ex: Mouse, VA-API)"]
+    end
+
+    D --> H1
+    H3 --> A
 ```
 
-### 1.1 Redução da Carga Cognitiva (O "Abraço")
-*   **Proatividade:** A IA não deve apenas responder perguntas secas, mas prever as necessidades do fluxo (ex: ao criar um container GUI, configurar áudio, aceleração gráfica e inputs de controle antes mesmo de o usuário solicitar).
-*   **Decisões Curadas:** Em vez de fazer perguntas abertas ("como você quer o nome?"), a IA deve pesquisar o contexto e apresentar opções refinadas com justificativas claras.
+---
 
-### 1.2 Segurança e Verificação Incremental
-*   **Varredura Prévia:** Investigar permissões e chaves de segurança (SSH, GPG, ACLs de arquivos) usando comandos não intrusivos antes de propor alterações.
-*   **Segurança por Padrão:** Evitar permissões amplas (ex: criar `.gitignore` para evitar vazamento de credenciais locais de Remote Play e chaves privadas).
+## ⚡ Pilares do Padrão de Projeto
+
+| Pilar | Ação da IA | Papel do Humano | Benefício |
+| :--- | :--- | :--- | :--- |
+| **Acolhimento Inicial** | Pesquisa proativamente os barramentos de hardware e dependências antes de codificar. | Fornece detalhes de contexto ou objetivos do projeto. | Redução de erros de deploy logo na primeira execução. |
+| **Higiene de Segurança** | Mantém tokens, chaves SSH/GPG e dados privados locais fora do Git com `.gitignore` preventivos. | Valida se há informações privadas expostas antes de publicar. | Proteção contra vazamento de credenciais em repositórios públicos. |
+| **Automação Auxiliar** | Cria scripts interativos em segundo plano para tarefas complexas (como login OAuth na PSN). | Copia e cola os links e tokens retornados na tela do terminal. | Facilidade na execução de tarefas interativas que a IA não pode automatizar. |
+| **Integração Visual** | Documenta com Mermaid, tabelas de recursos e alertas premium para facilitar a leitura. | Lê a documentação e executa comandos sugeridos. | Hand-off fluido e intuitivo para futuros desenvolvedores. |
 
 ---
 
-## 2. Fases do Fluxo de Trabalho (Spec)
+## 🛠️ Fases de Desenvolvimento
 
-### Fase 1: Diagnóstico de Ambiente
-O agente de IA mapeia as características do sistema operacional do host e o estado de configurações cruciais.
-*   **Ações da IA:**
-    1. Identificar versão do SO (`Ubuntu 26.04 LTS`).
-    2. Verificar ferramentas instaladas (`docker`, `docker compose`).
-    3. Analisar permissões de hardware (`getfacl /dev/dri/renderD128`) e grupos de usuário (`getent group input`).
-*   **Resultado esperado:** Confirmação da compatibilidade do ambiente do host com o container antes da escrita de qualquer código.
+### Fase 1: Diagnóstico de Hardware e Ambiente
+A IA deve mapear o sistema host para identificar possíveis conflitos com antecedência.
+*   **Ações:**
+    1. Identificar a distribuição Linux (`Ubuntu 26.04 LTS`).
+    2. Verificar a existência e permissões do grupo `input` (GID do host para periféricos).
+    3. Validar a presença de drivers e nós de renderização gráfica (`/dev/dri`).
 
-### Fase 2: Planejamento & Consentimento
-Modelar a solução técnica em um arquivo de plano temporário (`implementation_plan.md`) para alinhamento.
-*   **Critério de Entrada:** Entendimento claro dos requisitos de hardware, rede e credenciais.
-*   **Ações da IA:** Propor uma arquitetura (ex: explicar por que `network_mode: host` é necessário e seguro neste contexto de rede local).
-*   **Critério de Saída:** Aprovação explícita do usuário.
+### Fase 2: Configuração e Passagem de Periféricos (Cgroups)
+A IA propõe barramentos que garantem que dispositivos físicos (como o controle DualSense) funcionem dentro do container sem restrições de segurança excessivas.
+*   **Ações:**
+    1. Usar `privileged: true` para contornar o bloqueio de nós dinâmicos `/dev/hidraw*`.
+    2. Montar `/dev:/dev` para que novos dispositivos conectados USB/Bluetooth apareçam no container.
 
-### Fase 3: Execução e Automação Interativa
-Codificar as configurações e automatizar tarefas complexas ou interativas.
-*   **O Desafio de Inputs Interativos (OAuth):** Quando tarefas exigem logins que a IA não pode fazer (ex: autenticação na PlayStation Network), a IA executa o processo em segundo plano de forma assíncrona, expõe a URL para o usuário logar no navegador, espera a resposta e injeta o input (`stdin`) de volta para concluir a tarefa.
-*   **Ações da IA:**
-    1. Escrever `Dockerfile` multi-stage (isolamento de compilação).
-    2. Escrever `docker_compose.yaml` (montando os barramentos de áudio, vídeo e input corretos).
-    3. Rodar e gerenciar scripts auxiliares de forma interativa.
-
-### Fase 4: Hand-off & Documentação
-Entregar um ambiente pronto para produção acompanhado de documentação clara de operação.
-*   **Ações da IA:**
-    1. Criar um `README.md` detalhado com a arquitetura descrita e guia de solução de problemas.
-    2. Fornecer comandos exatos de Git para sincronização rápida de repositórios remotos.
-    3. Criar o `walkthrough.md` sumarizando as ações executadas e resultados de testes de integração.
+### Fase 3: Validação de Segurança e Higiene
+Antes de empurrar o projeto para a nuvem, a IA realiza buscas locais para garantir que nenhum dado sensível foi vazado.
+*   **Ações:**
+    1. Executar buscas por palavras-chave sensíveis (como IDs de contas).
+    2. Garantir que a pasta `./data/` de persistência está listada no `.gitignore`.
 
 ---
 
-## 3. Diretrizes para Programadores de IA (System Prompt Design)
+## 💾 Lições Aprendidas de Infraestrutura (Docker & Multimídia)
 
-Para reproduzir este comportamento, o prompt de sistema de uma IA de codificação deve incluir as seguintes instruções comportamentais:
-1.  **Não presuma, verifique:** Sempre consulte as permissões de arquivos, chaves de autenticação de SSH e GPG e versões de SO antes de dar diagnósticos sobre falhas de deploy.
-2.  **Mantenha a segurança e higiene:** Arquivos contendo configurações voláteis ou segredos locais (como a pasta `./data` ou chaves de pareamento de console) devem ser ignorados preventivamente via `.gitignore`.
-3.  **Facilite a verificação:** Sempre apresente os resultados das validações na linguagem do usuário, de forma mastigada e formatada em tabelas ou blocos claros.
-4.  **Crie documentação local integrada:** O repositório deve terminar sempre auto-explicativo para humanos, com scripts executáveis (`chmod +x`) e guias passo a passo.
+Durante as iterações de depuração e ajuste no projeto AstroPod-Chiaki, consolidamos os seguintes aprendizados:
+
+### 1. SDL2 e udev em Containers
+*   **Problema:** Bibliotecas multimídia modernas (como SDL2) dependem do daemon `udev` para listar joysticks no Linux. Containers Docker não rodam o daemon `udevd`, fazendo com que o SDL2 ignore completamente qualquer controle conectado.
+*   **Solução:** Definir a variável de ambiente `SDL_JOYSTICK_DISABLE_UDEV=1` no container. Isso força o SDL2 a ler diretamente a pasta `/dev/input` usando buscas manuais de arquivos de eventos (fallback estável).
+
+### 2. Comportamento do Touchpad como Mouse (DualSense)
+*   **Problema:** O touchpad do DualSense é reconhecido por padrão pelo sistema operacional do host (como o GNOME) como um dispositivo de mouse virtual. Ao ser usado no container, cliques e movimentos no touchpad podem disparar funções da interface de exibição do host (como maximizar a janela de exibição com cliques duplos) em vez de passarem para o jogo.
+*   **Solução:** O desenvolvedor precisa instalar o pacote `steam-devices` no host para carregar as regras Udev corretas e, na interface gráfica do cliente Chiaki, ir até as configurações e selecionar explicitamente o controlador físico no menu suspenso para que os inputs sejam traduzidos como botões do controle.
+
+### 3. Aceleração de Hardware (VA-API vs. Software Decode)
+*   **Problema:** A aceleração gráfica `vaapi` necessita que os drivers user-space específicos da GPU do computador host (Mesa, drivers Intel Media, etc.) estejam instalados **dentro** da imagem do container. Se a imagem do Docker for minimalista, habilitar `vaapi` quebrará o renderizador gráfico com o erro `Failed to create hwdevice context`.
+*   **Solução:** Manter o método de decodificação de vídeo do Chiaki como `none` (decodificação de software por CPU). Processadores modernos Intel e AMD decodificam fluxos de 1080p a 60fps sem esforço e com altíssima estabilidade, eliminando a dependência de drivers internos.
+
+### 4. Persistência de Pareamento entre Inicializações
+*   **Problema:** Em containers normais, parar ou reiniciar a máquina apagaria todas as credenciais de vínculo do PlayStation, exigindo que o usuário gere um novo PIN na TV a cada execução.
+*   **Solução:** Montar o diretório de dados local no container `./data:/home/chiaki`. O banco de dados de chaves de criptografia e pareamento fica protegido no host, tornando o container descartável. Reiniciar ou reconstruir a imagem permite reconectar ao PS5 com apenas dois cliques no aplicativo.
+
+### 5. Formatação do Mermaid Parser em Markdown
+*   **Problema:** Ao descrever caminhos de arquivos Linux (ex: `/run/user/...` ou `/dev/dri`) dentro de colchetes no Mermaid (ex: `PW[/run/user/1000]`), o parser de diagramas pode confundir a barra `/` com delimitadores de desenho de formato de nós (como o paralelograma `[/ /]`). Isso gera erros léxicos e impede a renderização de diagramas no GitHub.
+*   **Solução:** Sempre envolver textos que contenham barras inclinadas, espaços ou caracteres especiais em aspas duplas: `PW["/run/user/1000/pulse/native"]`.
 
 ---
 
-## 4. Lições Aprendidas de Infraestrutura (Docker & Multimídia)
-
-Durante a resolução de bugs de transmissão de controle e vídeo, os seguintes aprendizados foram consolidados para futuros builds de sistemas conteinerizados:
-
-### 4.1 Segurança de Dispositivos e Cgroups (Bypass de Whitelist)
-*   **O Problema:** Mesmo que a pasta `/dev/input` esteja mapeada e o usuário do container pertença ao grupo correto (`input` / `994`), o subsistema de segurança do Docker (cgroups device whitelist) impede a leitura/escrita direta de nós de caracteres criados dinamicamente (como `/dev/hidraw*` para gamepads DualSense). O resultado é um erro de `Permission Denied` silencioso na abertura do dispositivo pelo software (ex: SDL2).
-*   **A Solução:** Usar `privileged: true` no `docker_compose.yaml` para liberar o bypass de cgroups, permitindo que a autenticação de controle de acesso (UID e ACLs) seja delegada diretamente para o kernel do host de forma correta e dinâmica.
-
-### 4.2 SDL2 e udev em Containers
-*   **O Problema:** Frameworks modernos de controle (como SDL2) dependem do daemon `udevd` para monitorar a conexão e desconexão de joysticks na rede netlink do Linux. Como esse daemon não roda por padrão dentro do container, o SDL2 assume que existem "zero controles conectados", ignorando os botões físicos.
-*   **A Solução:** Injetar a variável de ambiente **`SDL_JOYSTICK_DISABLE_UDEV=1`** no container. Isso força o SDL2 a desativar a busca por eventos do udev e fazer uma varredura manual direta (fallback) nos arquivos do diretório `/dev/input`, reconhecendo os controles imediatamente.
-
-### 4.3 Drivers de Decodificação de Vídeo (Hardware vs. Software)
-*   **O Problema:** A aceleração gráfica por hardware (como `vaapi` no Linux) requer drivers de renderização específicos do fabricante (Mesa, Intel Media Driver) rodando **dentro do ambiente do container** (não apenas no host). Se o container runner for muito enxuto e faltarem os drivers, o renderizador gráfico falhará ao criar o contexto com o erro `Failed to create hwdevice context`.
-*   **A Solução:** Garantir a instalação dos drivers apropriados na imagem final ou prover e documentar uma opção de decodificação por software (via CPU, configurada como `none` no Chiaki) que sirva de fallback robusto e imediato.
-
+## 🎯 Diretrizes para Desenvolvimento com IAs no Futuro
+Para manter este nível de excelência, qualquer IA que trabalhar neste repositório deve seguir as regras:
+1.  **Garantir commit assinado:** Commits locais devem sempre respeitar a assinatura digital GPG configurada na máquina.
+2.  **Manter isolamento de ambiente:** Nunca use caminhos de usuário hardcoded (`/home/nauakavlis/...`) em arquivos de configuração que serão enviados ao GitHub; utilize variáveis de ambiente locais do Docker Compose.
+3.  **Prover scripts prontos para uso:** Qualquer processo interativo ou complexo deve ser empacotado em scripts executáveis (`chmod +x`), minimizando o trabalho manual do desenvolvedor.
