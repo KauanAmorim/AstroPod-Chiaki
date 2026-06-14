@@ -6,6 +6,7 @@ services:
     container_name: chiaki
     network_mode: host
     ipc: host
+    privileged: true
     environment:
       - DISPLAY=${DISPLAY}
       - XAUTHORITY=/tmp/.Xauthority
