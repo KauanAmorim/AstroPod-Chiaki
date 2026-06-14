@@ -1,121 +1,138 @@
-# Chiaki v2.2.0 - PlayStation Remote Play no Docker
+# 🚀 AstroPod-Chiaki (v2.0)
+> **PlayStation Remote Play em Docker** — Aceleração de Vídeo, Áudio Síncrono e Controles Físicos com Latência Zero.
 
-Este repositório contém a configuração completa para compilar e executar o **Chiaki (versão v2.2.0)** — o cliente de código aberto para Remote Play de PlayStation 4 e PlayStation 5 — isolado em um container Docker, mas integrado perfeitamente ao seu sistema host Linux (Ubuntu 26.04 LTS).
-
----
-
-## Como Funciona (Sob o Capô)
-
-Para que um aplicativo de streaming de jogos com interface gráfica pesada, áudio em tempo real e suporte a controles funcione dentro do Docker, os seguintes mecanismos foram implementados:
-
-1.  **Interface Gráfica (X11/Wayland):**
-    *   O socket do servidor gráfico do seu computador (`/tmp/.X11-unix`) e a autorização (`.Xauthority`) são compartilhados com o container.
-    *   A aceleração gráfica por hardware (OpenGL/Vulkan) é habilitada mapeando os nós de renderização de GPU do host (`/dev/dri`).
-2.  **Áudio em Tempo Real:**
-    *   O container se conecta diretamente ao servidor de som do host (PulseAudio ou PipeWire) através do socket nativo `/run/user/1000/pulse/native`, garantindo som estéreo e sem atrasos (delay).
-3.  **Rede em Modo Host (`network_mode: host`):**
-    *   Ativa a pilha de rede do host diretamente no container. Isso é **seguro** (o Chiaki age estritamente como cliente e não abre portas sensíveis para a internet) e **necessário** para que o Chiaki consiga enviar e receber pacotes de descoberta UDP (porta 987) e encontrar o console na sua rede local automaticamente.
-4.  **Suporte a Controles (USB / Bluetooth):**
-    *   Mapeia o diretório `/dev` completo do host para o container. Isso permite que controles USB e Bluetooth sejam detectados dinamicamente ao serem plugados, incluindo o acesso aos nós `/dev/hidraw*` necessários para suporte avançado do DualSense (touchpad, haptics).
-    *   Executa o processo de forma sincronizada com o ID do grupo `input` do seu host (GID padrão `994`), permitindo que o container leia as entradas físicas do controle.
-5.  **Persistência:**
-    *   Uma pasta local chamada `./data` é montada como o diretório home `/home/chiaki` do container. Isso garante que seus logins, consoles cadastrados e chaves de pareamento fiquem salvos localmente na sua máquina de forma permanente.
+Esta é a especificação de implantação da cápsula **AstroPod-Chiaki**, configurada para compilar e executar o **Chiaki v2.2.0** de forma isolada, limpa e resiliente em sistemas Linux modernos (testado com sucesso no **Ubuntu 26.04 LTS**).
 
 ---
 
-## Requisitos do Sistema Host
+## 🗺️ Fluxo de Arquitetura e Conectividade
 
-*   **Sistema Operacional:** Ubuntu 26.04 LTS (ou qualquer distribuição Linux moderna).
-*   **Docker Engine:** Versão `29.5.x` ou posterior.
-*   **Docker Compose:** Versão v2 (plugin `docker-compose-plugin` `5.1.x` ou posterior).
-*   **Aceleração Gráfica:** Drivers Mesa (Intel, AMD ou Nouveau) instalados.
-*   **Regras de Controle (Udev):** Pacote `steam-devices` instalado no host para habilitar permissões de leitura dos gamepads (como DualSense).
+O diagrama abaixo ilustra como o container Docker interage diretamente com o hardware do seu notebook host e com a sua rede local para transmitir a jogabilidade do PS5:
+
+```mermaid
+graph TD
+    subgraph Host [Notebook Host - Ubuntu 26.04]
+        C[Controle DualSense via USB-C] -- /dev/input & hidraw --> OS[Regras Udev/steam-devices]
+        A[Áudio - PipeWire/PulseAudio] -- native socket --> PW[/run/user/1000/pulse/native]
+        G[Vídeo - Mesa Drivers] -- DRI render nodes --> GPU[/dev/dri]
+        D[Exibição - XWayland/X11] -- unix socket --> X11[/tmp/.X11-unix]
+    end
+
+    subgraph Container [Cápsula AstroPod - Privilegiada]
+        Chiaki[Executável Chiaki v2.2.0]
+        Chiaki -- SDL2 / SDL_JOYSTICK_DISABLE_UDEV --> C
+        Chiaki -- Áudio Redirecionado --> PW
+        Chiaki -- Aceleração por Hardware --> GPU
+        Chiaki -- Renderização GUI --> X11
+    end
+
+    subgraph Rede Local [Rede de Casa]
+        Chiaki -- host network/UDP 987 --> PS5[PlayStation 5]
+    end
+```
 
 ---
 
-## 🛠️ Passo a Passo para Configuração
+## ⚡ Tabela de Recursos Suportados
 
-### 1. Preparar o PS5
-Antes de abrir o aplicativo, configure o seu console:
-1.  Vá em **Configurações** -> **Sistema** -> **Uso Remoto** e ative **Habilitar uso remoto**.
-2.  (Opcional, mas recomendado) Vá em **Configurações** -> **Sistema** -> **Economia de energia** -> **Recursos disponíveis no modo de repouso** e ative **Continuar conectado à Internet** e **Habilitar ligar o PS5 a partir da rede** para poder ligar o console em modo repouso via Chiaki.
-3.  Vá em **Configurações** -> **Sistema** -> **Uso Remoto** e clique em **Vincular dispositivo**. Um código PIN de 8 dígitos será mostrado. Deixe essa tela aberta.
-
-### 2. Obter o seu PSN Account ID (Base64)
-A Sony exige o ID interno da sua conta para o vínculo.
-1.  Acesse o site comunitário seguro: [https://psn.flipscreen.games/](https://psn.flipscreen.games/)
-2.  Faça login no site oficial da PlayStation através do link fornecido.
-3.  Após fazer login, você será redirecionado para uma página em branco. Copie a URL completa dessa página.
-4.  Cole a URL de volta no site da flipscreen e ele gerará o seu **Account ID (Base64)**. Copie esse código.
+| Recurso | Método de Integração | Status | Benefício Principal |
+| :--- | :--- | :---: | :--- |
+| **Interface Gráfica** | X11/XWayland Socket (`/tmp/.X11-unix`) |  | Exibição nativa na sua área de trabalho sem necessidade de VNC/noVNC. |
+| **Áudio Sincronizado** | Pipewire-Pulse Socket Mount |  | Som estéreo de alta fidelidade sem atrasos ou distorções. |
+| **Conexão PS5** | Rede de Host (`network_mode: host`) |  | Descoberta automática de console na rede local via UDP Broadcast. |
+| **Controles de Jogo** | Passagem de `/dev` + Modo Privilegiado |  | Suporte completo a vibração, botões e analógicos do DualSense via cabo. |
+| **Aceleração 3D** | Montagem de Dispositivos (`/dev/dri`) |  | Decodificação de vídeo eficiente (VA-API com fallback para CPU). |
+| **Persistência** | Bind Mount local (`./data:/home/chiaki`) |  | Mantém o login, pareamento e chaves de segurança salvos no host. |
 
 ---
 
-## 🚀 Como Compilar e Rodar o Container
+## 📋 Requisitos Prévios no Sistema Host
 
-Abra um terminal no diretório deste repositório e execute os comandos abaixo:
+Para que todos os periféricos (especialmente o controle) funcionem no Docker, seu computador precisa ter as seguintes dependências instaladas:
 
-### Passo A: Permitir conexões de display locais
-Para permitir que o container exiba a interface gráfica na sua tela:
+1.  **Docker & Docker Compose** (versões estáveis recentes instaladas).
+2.  **Aceleração de Hardware:** Drivers gráficos de GPU ativos (Mesa para Intel/AMD).
+3.  **Regras de Controle (Udev):** Pacote `steam-devices` instalado para conceder permissão de leitura sobre a porta USB-C do controle:
+    ```bash
+    sudo apt update && sudo apt install -y steam-devices
+    ```
+    *Nota: Após instalar este pacote, remova o controle da porta USB e conecte-o novamente.*
+
+---
+
+## 🛠️ Guia de Configuração e Pareamento Inicial
+
+### Passo 1: Preparar o PlayStation 5
+1.  Na sua TV, vá em **Configurações** ➡ **Sistema** ➡ **Uso Remoto** e ative **Habilitar uso remoto**.
+2.  (Recomendado) Vá em **Configurações** ➡ **Sistema** ➡ **Economia de energia** ➡ **Recursos disponíveis no modo de repouso** e ative **Continuar conectado à Internet** e **Habilitar ligar o PS5 a partir da rede**.
+3.  Vá em **Configurações** ➡ **Sistema** ➡ **Uso Remoto** ➡ **Vincular dispositivo**. Guarde o PIN de 8 dígitos gerado (ele expira em 300 segundos).
+
+### Passo 2: Obter o seu PSN Account ID (Base64)
+A Sony exige o ID interno da sua conta criptografado para o pareamento.
+1.  Execute o script Python auxiliar incluído na pasta do projeto:
+    ```bash
+    python3 psn-account-id.py
+    ```
+2.  Abra o link longo exibido no seu navegador, faça login na sua conta da PlayStation Network.
+3.  Quando a página redirecionar e ficar em branco, copie a URL da barra de endereços do seu navegador.
+4.  Cole a URL de volta no terminal onde o script está rodando e pressione **Enter** para obter o seu **AccountID (Base64)**.
+
+---
+
+## 🚀 Como Executar o Container
+
+Abra o terminal no diretório `/home/nauakavlis/DockerApps/astropod-chiaki` e siga a sequência:
+
+### 1. Permitir Conexão de Tela Local
+Libere o Docker para renderizar a interface na sua área de trabalho:
 ```bash
 xhost +local:docker
 ```
 
-### Passo B: Compilar a Imagem
-Este comando irá baixar o código-fonte original do Chiaki na tag `v2.2.0`, instalar todas as dependências de build dentro do container e compilar o executável:
+### 2. Compilar e Iniciar a Cápsula
+Suba o container em segundo plano:
 ```bash
-docker compose -f docker_compose.yaml build
+docker compose -f docker_compose.yaml up -d --build
 ```
+*A janela do Chiaki se abrirá automaticamente na tela do seu computador.*
 
-### Passo C: Iniciar o Chiaki
-Inicie o container em segundo plano:
-```bash
-docker compose -f docker_compose.yaml up -d
-```
-A janela gráfica do Chiaki se abrirá.
+### 3. Parear o Console
+1.  Dê um duplo clique no PS5 detectado na interface do Chiaki.
+2.  Preencha as informações:
+    *   **PSN Online-ID:** Seu apelido da PSN (ex: `Nauak_Avlis_`).
+    *   **PSN Account-ID:** O ID Base64 gerado pelo script no Passo 2.
+    *   **PIN:** O código de 8 dígitos exibido na TV.
+3.  Clique em **Register**. Uma mensagem de pareamento bem-sucedido será exibida.
 
-### Passo D: Registrar o Console no Aplicativo
-1.  Dê um duplo clique no PS5 detectado na interface gráfica do Chiaki.
-2.  Cole o seu **PSN Account ID (Base64)** no respectivo campo.
-3.  Digite o **PIN de 8 dígitos** gerado na TV do seu PS5.
-4.  Clique em **Register**. O console ficará cadastrado e pronto para jogar.
-
-### Passo E: Parar a Execução
-Para fechar o aplicativo e parar o container:
-```bash
-docker compose -f docker_compose.yaml down
-```
-
-> [!NOTE]
-> **Persistência de Dados:** Toda a sua configuração, credenciais de login e consoles registrados são salvos na pasta `./data` da sua máquina host. Isso significa que você pode parar o container, reiniciar o computador ou recriar a imagem sem perder nada! Nas próximas inicializações, basta dar dois cliques no retângulo do PS5 para conectar direto, sem necessidade de parear novamente ou gerar um novo PIN.
+### 4. Jogar!
+Conecte o controle via cabo USB-C ao seu notebook, dê dois cliques rápidos no ícone do PS5 no Chiaki e aproveite!
 
 ---
 
-## Solução de Problemas comuns
+## ⚠️ Solução de Problemas (Troubleshooting)
 
-*   **Erro de tela preta ou "Cannot open display":**
-    Certifique-se de executar `xhost +local:docker` na sua máquina host antes de subir o container.
-*   **O som do jogo não funciona:**
-    Verifique se o seu áudio do host está ativo e se o arquivo `/run/user/1000/pulse/native` existe. Caso o UID do seu usuário host seja diferente de 1000, você pode exportar a variável antes de rodar o comando:
-    ```bash
-    export UID=$(id -u)
-    docker compose -f docker_compose.yaml up -d
-    ```
-*   **O controle não responde ou não é detectado:**
-    1.  **Instale as regras Udev no Host:** O Linux bloqueia o acesso direto ao controle DualSense por padrão. Instale o pacote oficial de controles rodando no terminal do host:
-        ```bash
-        sudo apt update && sudo apt install -y steam-devices
-        ```
-        *Após instalar, desplugue e plugue novamente o cabo do controle para carregar as novas permissões.*
-    2.  **Verifique a variável INPUT_GID:** Se o ID do grupo `input` do seu host for diferente de 994 (padrão configurado no compose), você deve exportar o GID correto antes de iniciar:
-        ```bash
-        export INPUT_GID=$(getent group input | cut -d: -f3)
-        docker compose -f docker_compose.yaml up -d
-        ```
-    3.  **Configuração no Chiaki:** Dentro da interface gráfica do Chiaki, clique nas configurações (ícone de engrenagem) -> aba **Controller** e certifique-se de selecionar o controle DualSense no menu suspenso.
-*   **Erro `Failed to create hwdevice context` ao iniciar a Stream:**
-    Se a transmissão falhar ao abrir a tela do jogo com este erro, abra as Configurações do Chiaki (ícone de engrenagem) e mude o campo **Hardware decode method** de `vaapi` para **`none`**. Isso fará com que o processador (CPU) do notebook decodifique o fluxo de vídeo via software, o que é altamente estável e suportado nativamente.
-*   **Configurações de Performance Recomendadas:**
-    Para obter a melhor qualidade gráfica e áudio livre de estalos no Linux:
-    *   **Audio Buffer Size:** Defina como **`19200`** (corrige estalos de som).
-    *   **Bitrate:** Defina como **`30000`** (melhora nitidez gráfica se a rede for estável).
-    *   **Codec:** Defina como **`H265 (PS5 only)`** (muito mais eficiente que H264).
+> [!WARNING]
+> **Erro `Failed to create hwdevice context` (VA-API):**
+> Se a transmissão fechar ou travar ao iniciar o jogo exibindo essa mensagem, abra as configurações do Chiaki (ícone de engrenagem) e mude o campo **Hardware decode method** para **`none`**. Isso fará o processador do notebook decodificar o vídeo via software de forma extremamente estável e sem perda de desempenho perceptível (a CPU lida facilmente com o fluxo de 1080p 60fps).
+
+> [!IMPORTANT]
+> **Controle não responde aos comandos (Touchpad funciona como mouse):**
+> *   Verifique se instalou o pacote `steam-devices` no host e reconectou o cabo USB-C.
+> *   Nas configurações do Chiaki (engrenagem) ➡ aba **Controller**, certifique-se de escolher o DualSense no menu de seleção superior e aplicar a configuração.
+> *   O controle **só responderá quando a tela de transmissão do jogo estiver aberta**. Ele não funciona nos menus iniciais de lista de consoles do Chiaki.
+
+> [!TIP]
+> **Configurações Recomendadas de Performance:**
+> Para obter a melhor qualidade de imagem e som no Linux, aplique os seguintes valores nas configurações do Chiaki:
+> *   **Audio Buffer Size:** `19200` (evita chiados e estalos no som do jogo).
+> *   **Bitrate:** `30000` (melhora a nitidez visual significativamente se a rede for estável).
+> *   **Codec:** `H265 (PS5 only)` (decodificação mais leve e eficiente).
+
+---
+
+## 💾 Persistência de Dados e Reinicializações
+
+> [!NOTE]
+> **Segurança de Pareamento:** Graças ao bind mount mapeado no diretório `./data`, todas as suas credenciais, chaves de pareamento e configurações são salvas localmente e protegidas no seu computador host.
+>
+> Você pode parar o container (`docker compose down`), reiniciar o computador ou recriar a imagem a qualquer momento. Você **não perderá o pareamento**. Da próxima vez, basta ligar o PS5, abrir o Chiaki no PC e dar duplo clique para começar a jogar!
