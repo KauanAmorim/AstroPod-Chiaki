@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     qtbase5-dev \
     qtmultimedia5-dev \
     libqt5svg5-dev \
+    libqt5opengl5-dev \
     libopus-dev \
     libssl-dev \
     libsdl2-dev \
