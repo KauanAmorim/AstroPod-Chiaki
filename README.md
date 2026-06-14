@@ -11,23 +11,23 @@ O diagrama abaixo ilustra como o container Docker interage diretamente com o har
 
 ```mermaid
 graph TD
-    subgraph Host [Notebook Host - Ubuntu 26.04]
-        C[Controle DualSense via USB-C] -- /dev/input & hidraw --> OS[Regras Udev/steam-devices]
-        A[Áudio - PipeWire/PulseAudio] -- native socket --> PW[/run/user/1000/pulse/native]
-        G[Vídeo - Mesa Drivers] -- DRI render nodes --> GPU[/dev/dri]
-        D[Exibição - XWayland/X11] -- unix socket --> X11[/tmp/.X11-unix]
+    subgraph Host ["Notebook Host - Ubuntu 26.04"]
+        C["Controle DualSense via USB-C"] -- "/dev/input & hidraw" --> OS["Regras Udev/steam-devices"]
+        A["Áudio - PipeWire/PulseAudio"] -- "native socket" --> PW["/run/user/1000/pulse/native"]
+        G["Vídeo - Mesa Drivers"] -- "DRI render nodes" --> GPU["/dev/dri"]
+        D["Exibição - XWayland/X11"] -- "unix socket" --> X11["/tmp/.X11-unix"]
     end
 
-    subgraph Container [Cápsula AstroPod - Privilegiada]
-        Chiaki[Executável Chiaki v2.2.0]
-        Chiaki -- SDL2 / SDL_JOYSTICK_DISABLE_UDEV --> C
-        Chiaki -- Áudio Redirecionado --> PW
-        Chiaki -- Aceleração por Hardware --> GPU
-        Chiaki -- Renderização GUI --> X11
+    subgraph Container ["Cápsula AstroPod - Privilegiada"]
+        Chiaki["Executável Chiaki v2.2.0"]
+        Chiaki -- "SDL2 / SDL_JOYSTICK_DISABLE_UDEV" --> C
+        Chiaki -- "Áudio Redirecionado" --> PW
+        Chiaki -- "Aceleração por Hardware" --> GPU
+        Chiaki -- "Renderização GUI" --> X11
     end
 
-    subgraph Rede Local [Rede de Casa]
-        Chiaki -- host network/UDP 987 --> PS5[PlayStation 5]
+    subgraph Rede Local ["Rede de Casa"]
+        Chiaki -- "host network/UDP 987" --> PS5["PlayStation 5"]
     end
 ```
 
