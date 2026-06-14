@@ -11,6 +11,7 @@ services:
       - XAUTHORITY=/tmp/.Xauthority
       - PULSE_SERVER=unix:/tmp/pulse-socket
       - QT_X11_NO_MITSHM=1
+      - SDL_JOYSTICK_DISABLE_UDEV=1
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ${XAUTHORITY:-$HOME/.Xauthority}:/tmp/.Xauthority:ro
