@@ -85,6 +85,9 @@ Para fechar o aplicativo e parar o container:
 docker compose -f docker_compose.yaml down
 ```
 
+> [!NOTE]
+> **Persistência de Dados:** Toda a sua configuração, credenciais de login e consoles registrados são salvos na pasta `./data` da sua máquina host. Isso significa que você pode parar o container, reiniciar o computador ou recriar a imagem sem perder nada! Nas próximas inicializações, basta dar dois cliques no retângulo do PS5 para conectar direto, sem necessidade de parear novamente ou gerar um novo PIN.
+
 ---
 
 ## Solução de Problemas comuns
