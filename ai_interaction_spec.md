@@ -64,3 +64,22 @@ Para reproduzir este comportamento, o prompt de sistema de uma IA de codificaç�
 2.  **Mantenha a segurança e higiene:** Arquivos contendo configurações voláteis ou segredos locais (como a pasta `./data` ou chaves de pareamento de console) devem ser ignorados preventivamente via `.gitignore`.
 3.  **Facilite a verificação:** Sempre apresente os resultados das validações na linguagem do usuário, de forma mastigada e formatada em tabelas ou blocos claros.
 4.  **Crie documentação local integrada:** O repositório deve terminar sempre auto-explicativo para humanos, com scripts executáveis (`chmod +x`) e guias passo a passo.
+
+---
+
+## 4. Lições Aprendidas de Infraestrutura (Docker & Multimídia)
+
+Durante a resolução de bugs de transmissão de controle e vídeo, os seguintes aprendizados foram consolidados para futuros builds de sistemas conteinerizados:
+
+### 4.1 Segurança de Dispositivos e Cgroups (Bypass de Whitelist)
+*   **O Problema:** Mesmo que a pasta `/dev/input` esteja mapeada e o usuário do container pertença ao grupo correto (`input` / `994`), o subsistema de segurança do Docker (cgroups device whitelist) impede a leitura/escrita direta de nós de caracteres criados dinamicamente (como `/dev/hidraw*` para gamepads DualSense). O resultado é um erro de `Permission Denied` silencioso na abertura do dispositivo pelo software (ex: SDL2).
+*   **A Solução:** Usar `privileged: true` no `docker_compose.yaml` para liberar o bypass de cgroups, permitindo que a autenticação de controle de acesso (UID e ACLs) seja delegada diretamente para o kernel do host de forma correta e dinâmica.
+
+### 4.2 SDL2 e udev em Containers
+*   **O Problema:** Frameworks modernos de controle (como SDL2) dependem do daemon `udevd` para monitorar a conexão e desconexão de joysticks na rede netlink do Linux. Como esse daemon não roda por padrão dentro do container, o SDL2 assume que existem "zero controles conectados", ignorando os botões físicos.
+*   **A Solução:** Injetar a variável de ambiente **`SDL_JOYSTICK_DISABLE_UDEV=1`** no container. Isso força o SDL2 a desativar a busca por eventos do udev e fazer uma varredura manual direta (fallback) nos arquivos do diretório `/dev/input`, reconhecendo os controles imediatamente.
+
+### 4.3 Drivers de Decodificação de Vídeo (Hardware vs. Software)
+*   **O Problema:** A aceleração gráfica por hardware (como `vaapi` no Linux) requer drivers de renderização específicos do fabricante (Mesa, Intel Media Driver) rodando **dentro do ambiente do container** (não apenas no host). Se o container runner for muito enxuto e faltarem os drivers, o renderizador gráfico falhará ao criar o contexto com o erro `Failed to create hwdevice context`.
+*   **A Solução:** Garantir a instalação dos drivers apropriados na imagem final ou prover e documentar uma opção de decodificação por software (via CPU, configurada como `none` no Chiaki) que sirva de fallback robusto e imediato.
+

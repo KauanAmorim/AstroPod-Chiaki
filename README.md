@@ -109,3 +109,10 @@ docker compose -f docker_compose.yaml down
         docker compose -f docker_compose.yaml up -d
         ```
     3.  **Configuração no Chiaki:** Dentro da interface gráfica do Chiaki, clique nas configurações (ícone de engrenagem) -> aba **Controller** e certifique-se de selecionar o controle DualSense no menu suspenso.
+*   **Erro `Failed to create hwdevice context` ao iniciar a Stream:**
+    Se a transmissão falhar ao abrir a tela do jogo com este erro, abra as Configurações do Chiaki (ícone de engrenagem) e mude o campo **Hardware decode method** de `vaapi` para **`none`**. Isso fará com que o processador (CPU) do notebook decodifique o fluxo de vídeo via software, o que é altamente estável e suportado nativamente.
+*   **Configurações de Performance Recomendadas:**
+    Para obter a melhor qualidade gráfica e áudio livre de estalos no Linux:
+    *   **Audio Buffer Size:** Defina como **`19200`** (corrige estalos de som).
+    *   **Bitrate:** Defina como **`30000`** (melhora nitidez gráfica se a rede for estável).
+    *   **Codec:** Defina como **`H265 (PS5 only)`** (muito mais eficiente que H264).
