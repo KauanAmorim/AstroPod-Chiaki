@@ -1,0 +1,5 @@
+# Ignore local container persistent storage
+data/
+
+# Ignore local environment variables
+.env
