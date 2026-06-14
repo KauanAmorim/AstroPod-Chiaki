@@ -1,4 +1,4 @@
-# 🚀 AstroPod-Chiaki (v2.0)
+# 🚀 AstroPod-Chiaki (v2.0.2)
 > **PlayStation Remote Play em Docker** — Aceleração de Vídeo, Áudio Síncrono e Controles Físicos com Latência Zero.
 
 Esta é a especificação de implantação da cápsula **AstroPod-Chiaki**, configurada para compilar e executar o **Chiaki v2.2.0** de forma isolada, limpa e resiliente em sistemas Linux modernos (testado com sucesso no **Ubuntu 26.04 LTS**).
@@ -136,3 +136,9 @@ Conecte o controle via cabo USB-C ao seu notebook, dê dois cliques rápidos no 
 > **Segurança de Pareamento:** Graças ao bind mount mapeado no diretório `./data`, todas as suas credenciais, chaves de pareamento e configurações são salvas localmente e protegidas no seu computador host.
 >
 > Você pode parar o container (`docker compose down`), reiniciar o computador ou recriar a imagem a qualquer momento. Você **não perderá o pareamento**. Da próxima vez, basta ligar o PS5, abrir o Chiaki no PC e dar duplo clique para começar a jogar!
+
+---
+
+## 🔗 Referências
+
+*   [PlayStation Remote Play on Linux (Mike Babb)](https://mikebabb.com/blog/playstation-remote-play-on-linux/) — Guia comunitário de referência para configurações de áudio (`19200` buffer size) e taxa de bits (`30000` bitrate) estáveis no Linux.
