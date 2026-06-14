@@ -16,8 +16,8 @@ Para que um aplicativo de streaming de jogos com interface gráfica pesada, áud
 3.  **Rede em Modo Host (`network_mode: host`):**
     *   Ativa a pilha de rede do host diretamente no container. Isso é **seguro** (o Chiaki age estritamente como cliente e não abre portas sensíveis para a internet) e **necessário** para que o Chiaki consiga enviar e receber pacotes de descoberta UDP (porta 987) e encontrar o console na sua rede local automaticamente.
 4.  **Suporte a Controles (USB / Bluetooth):**
-    *   Mapeia o diretório de dispositivos de entrada do Linux (`/dev/input`) para que gamepads conectados por cabo ou sem fio apareçam no container.
-    *   Executa o processo de forma sincronizada com o ID do grupo `input` do seu host (GID padrão `994`), permitindo que o container leia as entradas físicas do controle sem precisar rodar em modo privilegiado ou como root.
+    *   Mapeia o diretório `/dev` completo do host para o container. Isso permite que controles USB e Bluetooth sejam detectados dinamicamente ao serem plugados, incluindo o acesso aos nós `/dev/hidraw*` necessários para suporte avançado do DualSense (touchpad, haptics).
+    *   Executa o processo de forma sincronizada com o ID do grupo `input` do seu host (GID padrão `994`), permitindo que o container leia as entradas físicas do controle.
 5.  **Persistência:**
     *   Uma pasta local chamada `./data` é montada como o diretório home `/home/chiaki` do container. Isso garante que seus logins, consoles cadastrados e chaves de pareamento fiquem salvos localmente na sua máquina de forma permanente.
 
@@ -29,6 +29,7 @@ Para que um aplicativo de streaming de jogos com interface gráfica pesada, áud
 *   **Docker Engine:** Versão `29.5.x` ou posterior.
 *   **Docker Compose:** Versão v2 (plugin `docker-compose-plugin` `5.1.x` ou posterior).
 *   **Aceleração Gráfica:** Drivers Mesa (Intel, AMD ou Nouveau) instalados.
+*   **Regras de Controle (Udev):** Pacote `steam-devices` instalado no host para habilitar permissões de leitura dos gamepads (como DualSense).
 
 ---
 
@@ -96,9 +97,15 @@ docker compose -f docker_compose.yaml down
     export UID=$(id -u)
     docker compose -f docker_compose.yaml up -d
     ```
-*   **O controle não é detectado:**
-    Verifique se o seu controle está pareado/conectado. Se o ID do grupo de entrada (`input`) do seu computador host for diferente de 994, você pode verificar o ID correto com `getent group input` e rodar a aplicação definindo esse GID:
-    ```bash
-    export INPUT_GID=$(getent group input | cut -d: -f3)
-    docker compose -f docker_compose.yaml up -d
-    ```
+*   **O controle não responde ou não é detectado:**
+    1.  **Instale as regras Udev no Host:** O Linux bloqueia o acesso direto ao controle DualSense por padrão. Instale o pacote oficial de controles rodando no terminal do host:
+        ```bash
+        sudo apt update && sudo apt install -y steam-devices
+        ```
+        *Após instalar, desplugue e plugue novamente o cabo do controle para carregar as novas permissões.*
+    2.  **Verifique a variável INPUT_GID:** Se o ID do grupo `input` do seu host for diferente de 994 (padrão configurado no compose), você deve exportar o GID correto antes de iniciar:
+        ```bash
+        export INPUT_GID=$(getent group input | cut -d: -f3)
+        docker compose -f docker_compose.yaml up -d
+        ```
+    3.  **Configuração no Chiaki:** Dentro da interface gráfica do Chiaki, clique nas configurações (ícone de engrenagem) -> aba **Controller** e certifique-se de selecionar o controle DualSense no menu suspenso.
