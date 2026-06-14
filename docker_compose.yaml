@@ -16,7 +16,7 @@ services:
       - ${XAUTHORITY:-$HOME/.Xauthority}:/tmp/.Xauthority:ro
       - /run/user/${UID:-1000}/pulse/native:/tmp/pulse-socket
       - ./data:/home/chiaki
-      - /dev/input:/dev/input:ro
+      - /dev:/dev
     devices:
       - /dev/dri:/dev/dri
     group_add:
